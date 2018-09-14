@@ -80,7 +80,7 @@ class UList1 : public RegList1<UReg1> {
 class MeasureEventMsg : public Message {
   public:
     void init(uint8_t msgcnt, uint8_t channel, uint16_t voltage, uint8_t battvolt) {
-      Message::init(0x0e, msgcnt, 0x53, BCAST, channel & 0xff, (voltage >> 8) & 0xff);
+      Message::init(0x0e, msgcnt, 0x53, (msgcnt % 20 == 1) ? BIDI : BCAST, channel & 0xff, (voltage >> 8) & 0xff);
       pload[0] = voltage & 0xff;
       pload[1] = battvolt & 0xff;
     }
@@ -111,7 +111,8 @@ class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_C
     }
 
     uint32_t delay () {
-      return seconds2ticks((max(10, device().getList0().Sendeintervall()) * SYSCLOCK_FACTOR) + random(4));
+      uint16_t d = (max(10, device().getList0().Sendeintervall()) * SYSCLOCK_FACTOR) + random(10); //add some small random difference between channels
+      return seconds2ticks(d);
     }
 
     void configChanged() {
