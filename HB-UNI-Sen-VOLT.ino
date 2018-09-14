@@ -45,9 +45,21 @@ const struct DeviceInfo PROGMEM devinfo = {
 /**
    Configure the used hardware
 */
-typedef AskSin<StatusLed<LED_PIN>, BatterySensor, Radio<AvrSPI<10, 11, 12, 13>, 2>> Hal;
-Hal hal;
+typedef AskSin<StatusLed<LED_PIN>, BatterySensor, Radio<AvrSPI<10, 11, 12, 13>, 2>> BaseHal;
+class Hal : public BaseHal {
+  public:
+    void init (const HMID& id) {
+      BaseHal::init(id);
+      // measure battery every 1h
+      battery.init(seconds2ticks(60UL * 60), sysclock);
+      battery.low(22);
+      battery.critical(19);
+    }
 
+    bool runready () {
+      return sysclock.runready() || BaseHal::runready();
+    }
+} hal;
 
 DEFREGISTER(UReg0, MASTERID_REGS, DREG_LOWBATLIMIT, 0x20, 0x21)
 class UList0 : public RegList0<UReg0> {
@@ -79,10 +91,9 @@ class UList1 : public RegList1<UReg1> {
 
 class MeasureEventMsg : public Message {
   public:
-    void init(uint8_t msgcnt, uint8_t channel, uint16_t voltage, uint8_t battvolt) {
+    void init(uint8_t msgcnt, uint8_t channel, uint16_t voltage) {
       Message::init(0x0e, msgcnt, 0x53, (msgcnt % 20 == 1) ? BIDI : BCAST, channel & 0xff, (voltage >> 8) & 0xff);
       pload[0] = voltage & 0xff;
-      pload[1] = battvolt & 0xff;
     }
 };
 
@@ -97,6 +108,10 @@ class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_C
 
     void measure() {
 
+      // HIER DIE MESSUNG DURCHFÜHREN
+      // Spannung muss mit Faktor 10 übertragen werden
+      // 12.8V -> voltage = 128;
+
       voltage = random(2300);
 
 
@@ -104,8 +119,13 @@ class MeasureChannel : public Channel<Hal, UList1, EmptyList, List4, PEERS_PER_C
 
     virtual void trigger (__attribute__ ((unused)) AlarmClock& clock) {
       measure();
+      
+      if (last_flags != flags()) {
+        if (number() == 1) this->changed(true);
+        last_flags = flags();
+      }
       tick = delay();
-      msg.init(device().nextcount(), number(), voltage,  device().battery().current());
+      msg.init(device().nextcount(), number(), voltage);
       device().sendPeerEvent(msg, *this);
       sysclock.add(*this);
     }
