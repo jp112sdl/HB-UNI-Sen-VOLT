@@ -32,11 +32,6 @@ using namespace as;
 //Korrekturfaktor der Clock-Ungenauigkeit, wenn keine RTC verwendet wird
 #define SYSCLOCK_FACTOR    0.88
 
-enum UltrasonicSensorTypes {
-  JSN_SR04T,
-  MAXSONAR
-};
-
 // define all device properties
 const struct DeviceInfo PROGMEM devinfo = {
   {0xF3, 0x4A, 0x00},          // Device ID
