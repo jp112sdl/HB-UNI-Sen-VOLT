@@ -92,7 +92,7 @@ class UList1 : public RegList1<UReg1> {
 class MeasureEventMsg : public Message {
   public:
     void init(uint8_t msgcnt, uint8_t channel, uint16_t voltage) {
-      Message::init(0x0e, msgcnt, 0x53, (msgcnt % 20 == 1) ? BIDI : BCAST, channel & 0xff, (voltage >> 8) & 0xff);
+      Message::init(0x0e, msgcnt, 0x53, (msgcnt % 20 == 1) ? (BIDI | WKMEUP) : BCAST, channel & 0xff, (voltage >> 8) & 0xff);
       pload[0] = voltage & 0xff;
     }
 };
